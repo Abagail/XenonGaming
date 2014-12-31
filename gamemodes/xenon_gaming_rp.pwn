@@ -233,6 +233,8 @@ public OnPlayerSpawn(playerid)
 		SetPlayerSkin(playerid, pInfo[playerid][pSkinID]);
 		return 1;
 	}
+	SetPlayerPos(playerid, pInfo[playerid][pPos_x], pInfo[playerid][pPos_y], pInfo[playerid][pPos_z]);
+	SetPlayerInterior(playerid, pInfo[playerid][pInterior]);
 	return true;
 }
 public OnPlayerConnect(playerid)
