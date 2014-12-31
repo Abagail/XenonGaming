@@ -51,6 +51,9 @@
 #define MAX_ADMIN_LEVEL         10
 #define ADMIN_MANAGER_RANK      6
 #define MAX_ADMIN_VEHICLE_SLOTS 25
+
+#define ERROR_TYPE_NONE 0
+#define ERROR_TYPE_NOT_AUTH 1
 native WP_Hash(buffer[], len, const str[]);
 #pragma tabsize 0
 new g_VehicleNames[][] =
@@ -267,6 +270,7 @@ public OnPlayerDisconnect(playerid, reason)
 		pShotBy[playerid] = INVALID_PLAYER_ID;
 	}
 	OnPlayerSave(playerid);
+	ResetPlayerData(playerid);
 	return 1;
 }
 
@@ -485,6 +489,41 @@ ReturnUser(text[]) {
 	return INVALID_PLAYER_ID;
 }
 
+SendErrorMessage(playerid, color, error=ERROR_TYPE_NONE)
+{
+	switch(error)
+	{
+	    case ERROR_TYPE_NONE: return 1;
+	    case ERROR_TYPE_NOT_AUTH:
+	    {
+			SendClientMessage(playerid, color, "You are not allowed to use this command.");
+			return true;
+		}
+		default: return 1;
+	}
+	return 1;
+}
+stock ResetPlayerData(playerid)
+{
+    pInfo[playerid][pID] = 0;
+    pInfo[playerid][pPass] = '\0';
+	pInfo[playerid][pAdmin] = 0;
+	pInfo[playerid][pVip] = 0;
+	pInfo[playerid][pMoney] = 0;
+	pInfo[playerid][pScore] = 0;
+	pInfo[playerid][pTrustedLevel] = 0;
+	pInfo[playerid][pDeaths] = 0;
+	pInfo[playerid][pKills] = 0;
+	pInfo[playerid][pPos_x] = 0.0;
+	pInfo[playerid][pPos_y] = 0.0;
+	pInfo[playerid][pPos_z] = 0.0;
+	pInfo[playerid][pPos_FacingAngle] = 0.0;
+	pInfo[playerid][pInterior] = 0;
+	pInfo[playerid][pSkinID] = -1;
+	pInfo[playerid][pVW] = 0;
+    pInfo[playerid][pAName] = '\0';
+    return true;
+}
 stock GetAdminVehicleSlot(vehicleid)
 {
 	if(vehicleid != INVALID_VEHICLE_ID)
@@ -826,7 +865,7 @@ CMD:checkip(playerid, params[])
 		}
 		else return SendClientMessage(playerid, COLOR_GREY, "That account doesn't exist.");
 	}
-	else return SendClientMessage(playerid, COLOR_RED, "You're not authorized to use this command.");
+	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
 
 CMD:kick(playerid, params[])
@@ -849,7 +888,7 @@ CMD:kick(playerid, params[])
 		}
 		else return SendClientMessage(playerid, COLOR_RED, "They aren't connected, or have a higher admin rank than you.");
 	}
-	else return SendClientMessage(playerid, COLOR_RED, "You're not authorized to use this command.");
+	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
 
 CMD:poke(playerid, params[])
@@ -867,7 +906,7 @@ CMD:poke(playerid, params[])
 		}
 		else return SendClientMessage(playerid, COLOR_RED, "They aren't connected.");
 	}
-	else return SendClientMessage(playerid, COLOR_RED, "You're not authorized to use this command.");
+	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
 
 CMD:makeadmin(playerid, params[])
@@ -889,7 +928,7 @@ CMD:makeadmin(playerid, params[])
 		}
 		else return SendClientMessage(playerid, COLOR_RED, "They aren't connected or the level entered is invalid.");
 	}
-	else return SendClientMessage(playerid, COLOR_RED, "You're not authorized to use this command.");
+	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
 
 CMD:a(playerid, params[])
@@ -924,7 +963,7 @@ CMD:setforumname(playerid, params[])
 		}
 		else return SendClientMessage(playerid, COLOR_RED, "They aren't connected.");
 	}
-	else return SendClientMessage(playerid, COLOR_RED, "You're not authorized to use this command.");
+	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
 CMD:aduty(playerid, params[])
 {
@@ -1146,7 +1185,7 @@ CMD:v(playerid, params[])
 		}
 		return true;
 	}
-	else return SendClientMessage(playerid, -1, "You are not allowed to perform this action.");
+	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
 
 CMD:destroyvehicle(playerid, params[])
@@ -1180,6 +1219,6 @@ CMD:destroyvehicle(playerid, params[])
 		}
 		return 1;
 	}
-	else return SendClientMessage(playerid, -1, "You are not allowed to perform this action.");
+	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
 
