@@ -193,11 +193,18 @@ public LoadSpawn()
 forward OnSpawnLoad();
 public OnSpawnLoad()
 {
-    spawnPosX = cache_get_row_float(0, 0);
-    spawnPosY = cache_get_row_float(0, 1);
-    spawnPosZ = cache_get_row_float(0, 2);
-	spawnAngle = cache_get_row_float(0, 3);
+    spawnPosX = cache_get_field_content_float(0, "X");
+    spawnPosY = cache_get_field_content_float(0, "Y");
+    spawnPosZ = cache_get_field_content_float(0, "Z");
+	spawnAngle = cache_get_field_content_float(0, "Angle");
 	printf("New player spawn point has been loaded(%f, %f, %f)", spawnPosX, spawnPosY, spawnPosZ);
+	if(spawnPosX == 0.0)
+	{
+	    spawnPosX = -182.836;
+	    spawnPosY = 1132.67;
+	    spawnPosZ = 19.7422;
+	    print("Bad spawn point detected: - Reset to default spawn point.");
+	}
 	return true;
 }
 
