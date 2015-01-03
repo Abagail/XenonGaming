@@ -682,6 +682,7 @@ public OnPlayerRegister(playerid)
     pInfo[playerid][pID] = cache_insert_id();
     GivePlayerMoney(playerid, 250);
     SetPlayerScore(playerid, 0);
+    SetSpawnInfo(playerid, -1, 299, spawnPosX, spawnPosY, spawnPosZ, spawnAngle, 0, 0, 0, 0, 0, 0);
     SpawnPlayer(playerid);
     SetPlayerSkinEx(playerid, 299);
     SetPlayerPos(playerid, spawnPosX, spawnPosY, spawnPosZ);
