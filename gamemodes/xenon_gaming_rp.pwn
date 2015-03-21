@@ -251,7 +251,7 @@ public OnPlayerConnect(playerid)
 	SendClientMessage(playerid, -1, "Welcome to Xenon Gaming. Please wait.");
     new name[MAX_PLAYER_NAME], first[MAX_PLAYER_NAME], last[MAX_PLAYER_NAME];
 	GetPlayerName(playerid,name,sizeof(name));
-	if(BanCheck(playerid) == 0) KickEx(playerid, "You are banned from this server.");
+	BanCheck(playerid);
 	if(IsPlayerNPC(playerid))
 	{
 	    new pIP[16];
@@ -337,6 +337,27 @@ public OnAccountCheck(playerid)
         ShowPlayerDialog(playerid,DIALOG_REGISTER,DIALOG_STYLE_INPUT,"{EDDC57}Registration required",string,"Register","Cancel");
     }
     return 1;
+}
+
+forward OnBanCheck_Response(playerid);
+public OnBanCheck_Response(playerid)
+{
+	new rows, fields;
+ 	cache_get_data(rows, fields, MySQLCon);
+  	if(rows)
+   	{
+		KickEx(playerid, "You are banned from the server!");
+
+		new playerIP[32];
+		GetPlayerIp(playerid, playerIP, sizeof(playerIP));
+		printf("[BANKICK]: %s(%s) tried to login while banned.", GetName(playerid), playerIP);
+		
+		return 1;
+   	}
+    else
+    {
+        return 1;
+    }
 }
 
 public OnDialogResponse(playerid, dialogid, response, listitem, inputtext[])
@@ -787,18 +808,11 @@ stock BanCheck(playerid)
 	new pName[MAX_PLAYER_NAME];
 	GetPlayerName(playerid, pName, MAX_PLAYER_NAME);
 	mysql_format(MySQLCon, query, sizeof(query), "SELECT * FROM `bans` WHERE `ip` = '%s' OR `username` = '%s'", pIP, pName);
- 	mysql_tquery(MySQLCon, query, "", "");
-  	new rows, fields;
- 	cache_get_data(rows, fields, MySQLCon);
-  	if(rows)
-   	{
-	    return 0;
-   	}
-    else
-    {
-        return 1;
-    }
+ 	mysql_tquery(MySQLCon, query, "OnBanCheck_Response", "d", playerid);
+
+ 	return 1;
 }
+
 
 stock IsValidSkin(skin)
 {
