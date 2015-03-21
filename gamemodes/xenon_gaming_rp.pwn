@@ -351,7 +351,7 @@ public OnBanCheck_Response(playerid)
 		new playerIP[32];
 		GetPlayerIp(playerid, playerIP, sizeof(playerIP));
 		printf("[BANKICK]: %s(%s) tried to login while banned.", GetName(playerid), playerIP);
-		
+
 		return 1;
    	}
     else
@@ -923,7 +923,7 @@ CMD:poke(playerid, params[])
 	    if(sscanf(params, "us[128]", giveplayerid, message)) return SendClientMessage(playerid, COLOR_WHITE, "USAGE: /poke [playerid] [message]");
 		if(IsPlayerConnected(giveplayerid))
 		{
-		    ShowPlayerDialog(playerid, 0, DIALOG_STYLE_MSGBOX, "An admin pokes you.", message, "Okay", "Okay");
+		    ShowPlayerDialog(giveplayerid, 0, DIALOG_STYLE_MSGBOX, "An admin pokes you.", message, "Okay", "Okay");
 			format(string, sizeof(string), "You poked %s with the message %s.", GetName(giveplayerid), message);
 			SendClientMessage(playerid, COLOR_RED, string);
 			return 1;
