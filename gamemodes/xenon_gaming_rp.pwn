@@ -117,6 +117,7 @@ new LoginAttempts[MAX_PLAYERS];
 new RCONMakeAdmin = 0; // RCON Admins CAN'T use /makeadmin by default.
 new serverMOTD[256];
 new aduty[MAX_PLAYERS]; // Admin Duty Variable.
+new pAdminHide[MAX_PLAYERS];
 new pShotBy[MAX_PLAYERS] = INVALID_PLAYER_ID;
 new g_AdminVehicleID[MAX_VEHICLES] = -1;
 
@@ -552,6 +553,8 @@ stock ResetPlayerData(playerid)
 	pInfo[playerid][pSkinID] = -1;
 	pInfo[playerid][pVW] = 0;
     pInfo[playerid][pAName] = '\0';
+
+	pAdminHide[playerid] = 0;
     return true;
 }
 stock GetAdminVehicleSlot(vehicleid)
@@ -892,6 +895,54 @@ CMD:checkip(playerid, params[])
 	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
 
+CMD:ahide(playerid, params[])
+{
+	if(pInfo[playerid][pAdmin])
+	{
+		if(pAdminHide[playerid])
+		{
+			SendClientMessage(playerid, -1, "You are now shown on the admin list.");
+			pAdminHide[playerid] = 0;
+			return 1;
+		}
+		else
+		{
+		    SendClientMessage(playerid, -1, "You have hidden yourself from the admin list.");
+			pAdminHide[playerid] = 1;
+			return 1;
+		}
+	}
+	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
+}
+CMD:admins(playerid, params[])
+{
+	new string[128 + MAX_PLAYER_NAME], count;
+	foreach(new i: Player)
+	{
+	    if(pInfo[i][pAdmin] && pAdminHide[i] == 0 || pInfo[i][pAdmin] && pAdminHide[i] && pInfo[playerid][pAdmin] >= 6)
+	    {
+	        switch(aduty[i])
+			{
+				 case 0: format(string, sizeof(string), "Off-Duty");
+				 default: format(string, sizeof(string), "On-Duty");
+			}
+
+			format(string, sizeof(string), "Level %s Admin %s(%s)", pInfo[i][pAdmin], GetName(i), string);
+			
+			SendClientMessage(playerid, COLOR_YELLOW, string);
+			count++;
+			
+			continue;
+		}
+		
+		continue;
+	}
+	
+	if(!count) SendClientMessage(playerid, -1, "No admins are online.");
+
+	return 1;
+}
+		
 CMD:kick(playerid, params[])
 {
 	if(pInfo[playerid][pAdmin] >= 1)
@@ -905,8 +956,6 @@ CMD:kick(playerid, params[])
 			print(string);
 			format(string, sizeof(string), "You have been kicked from the server by Admin %s, for: %s.", GetName(playerid), reason);
 			SendClientMessage(giveplayerid, COLOR_RED, string);
-			IsLoggedIn[giveplayerid] = 0;
-			LoginAttempts[giveplayerid] = 0;
             SetTimerEx("KickPublic", 1000, false, "i", playerid);
             return 1;
 		}
@@ -966,7 +1015,7 @@ CMD:a(playerid, params[])
 		SendAdminMessage(COLOR_YELLOW, string);
 		return 1;
 	}
-	else return SendClientMessage(playerid, COLOR_RED, "You're not an admin, or are not on-duty.");
+	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
 
 CMD:setforumname(playerid, params[])
@@ -989,6 +1038,7 @@ CMD:setforumname(playerid, params[])
 	}
 	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
+
 CMD:aduty(playerid, params[])
 {
 	new string[128];
@@ -1038,7 +1088,7 @@ CMD:getcar(playerid, params[])
 		}
 		else return SendClientMessage(playerid, COLOR_WHITE, "Invalid vehicle ID!");
 	}
-	else return SendClientMessage(playerid, COLOR_WHITE, "You aren't an admin, or aren't on-duty.");
+	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
 
 CMD:gotov(playerid, params[])
