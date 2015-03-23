@@ -163,6 +163,11 @@ public OnGameModeExit()
 	print("Gamemode has exited.");
 	SaveSpawn();
 	SaveMOTD();
+	
+	foreach(new i: Player)
+	{
+	    CallLocalFunction("OnPlayerSave", "d", i);
+	}
 	return 1;
 }
 
@@ -340,6 +345,28 @@ public OnAccountCheck(playerid)
     return 1;
 }
 
+forward OnIPCheck_Response(playerid, checkingname[]);
+public OnIPCheck_Response(playerid, checkingname[])
+{
+	new numrows = cache_get_row_count();
+	if(numrows)
+	{
+     	new pIP[32], string[256];
+     	cache_get_field_content(0, "IP", pIP, sizeof(pIP));
+     	format(string, sizeof(string), "[CHECKIP]: %s(OFFLINE): %s", checkingname, pIP);
+     	
+		SendClientMessage(playerid, COLOR_WHITE, string);
+		
+		return 1;
+	}
+	
+	else
+	{
+	    return SendClientMessage(playerid, COLOR_YELLOW, "That user does not exist!");
+	}
+}
+     	
+     	
 forward OnBanCheck_Response(playerid);
 public OnBanCheck_Response(playerid)
 {
@@ -856,7 +883,7 @@ stock DoesAccountExist(szName[])
 CMD:adminhelp(playerid, params[])
 {
 	if(pInfo[playerid][pAdmin] == 0) return SendClientMessage(playerid, COLOR_WHITE, "There are no commands for your rank.");
-	if(pInfo[playerid][pAdmin] >= 1) SendClientMessage(playerid, COLOR_WHITE, "Level 1 Admin: /kick /poke /a /aduty /gotov /getcar /respawnv");
+	if(pInfo[playerid][pAdmin] >= 1) SendClientMessage(playerid, COLOR_WHITE, "Level 1 Admin: /kick /poke /a /aduty /gotov /getcar /respawnv /ahide");
 	if(pInfo[playerid][pAdmin] >= 2) SendClientMessage(playerid, COLOR_WHITE, "There are no commands for this rank.");
 	if(pInfo[playerid][pAdmin] >= 3) SendClientMessage(playerid, COLOR_WHITE, "There are no commands for this rank.");
 	if(pInfo[playerid][pAdmin] >= 4) SendClientMessage(playerid, COLOR_WHITE, "There are no commands for this rank.");
@@ -872,25 +899,21 @@ CMD:checkip(playerid, params[])
 {
 	if(pInfo[playerid][pAdmin] >= 1)
 	{
-		new szName[MAX_PLAYER_NAME];
-		if(sscanf(params, "s[24]", szName)) return SendClientMessage(playerid, COLOR_WHITE, "USAGE: /checkip [playerid/playername]");
-        new giveplayerid = ReturnUser(szName);
+		new player_name[MAX_PLAYER_NAME];
+		if(sscanf(params, "s[24]", player_name)) return SendClientMessage(playerid, COLOR_WHITE, "USAGE: /checkip [playerid/playername]");
+        new giveplayerid = ReturnUser(player_name);
 		if(IsPlayerConnected(giveplayerid)) {
 		    new pIP[16], string[256];
 		    GetPlayerIp(giveplayerid, pIP, 16);
 			format(string, sizeof(string), "[CHECKIP]: %s(%d): %s", GetName(giveplayerid), giveplayerid, pIP);
 			return SendClientMessage(playerid, COLOR_WHITE, string);
 		}
-		else if(DoesAccountExist(szName)) {
+		else {
              new query[500];
-    		 mysql_format(MySQLCon, query, sizeof(query), "SELECT * FROM `players` WHERE `user` = '%e' LIMIT 1", szName);
-		     mysql_tquery(MySQLCon, query, "", "");
-		     new pIP[16], string[256];
-             cache_get_row(0, 3, pIP, MySQLCon, 16);
-             format(string, sizeof(string), "[CHECKIP]: %s(OFFLINE): %s", szName, pIP);
-             return SendClientMessage(playerid, COLOR_WHITE, string);
+    		 mysql_format(MySQLCon, query, sizeof(query), "SELECT * FROM `players` WHERE `user` = '%e' LIMIT 1", player_name);
+		     mysql_tquery(MySQLCon, query, "OnIPCheck_Response", "ds", playerid, player_name);
+             return 1;
 		}
-		else return SendClientMessage(playerid, COLOR_GREY, "That account doesn't exist.");
 	}
 	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
@@ -988,18 +1011,32 @@ CMD:makeadmin(playerid, params[])
 	{
 	    new giveplayerid, level;
 	    if(sscanf(params, "ud", giveplayerid, level)) return SendClientMessage(playerid, COLOR_WHITE, "USAGE: /makeadmin [playerid] [level]");
-	    if(IsPlayerConnected(giveplayerid) && level < MAX_ADMIN_LEVEL)
+	    if(IsPlayerConnected(giveplayerid))
 	    {
-	        new status[64], string[200];
-	        if(level > pInfo[giveplayerid][pAdmin]) format(status, 64, "Promoted");
-	        else format(status, 64, "Demoted");
-			pInfo[giveplayerid][pAdmin] = level;
-			format(string, sizeof(string), "AdminWarning: %s has %s %s to level %d admin.", GetName(playerid), status, GetName(giveplayerid), level);
-			SendAdminMessage(COLOR_RED, string);
-			print(string);
-			return 1;
+	        if(level < MAX_ADMIN_LEVEL && level != 0)
+	        {
+		        new status[64], string[200];
+		        if(level > pInfo[giveplayerid][pAdmin]) format(status, 64, "Promoted");
+		        else format(status, 64, "Demoted");
+				pInfo[giveplayerid][pAdmin] = level;
+				format(string, sizeof(string), "AdminWarning: %s has %s %s to level %d admin.", GetName(playerid), status, GetName(giveplayerid), level);
+				SendAdminMessage(COLOR_RED, string);
+				print(string);
+		        return 1;
+			}
+			else if(level == 0)
+			{
+				new string[200];
+				pInfo[giveplayerid][pAdmin] = level;
+				format(string, sizeof(string), "AdminWarning: %s has removed %s from the admin team.", GetName(playerid), GetName(giveplayerid));
+				SendAdminMessage(COLOR_RED, string);
+				print(string);
+				return 1;
+			}
+			else return SendClientMessage(playerid, COLOR_RED, "Invalid admin level.");
 		}
-		else return SendClientMessage(playerid, COLOR_RED, "They aren't connected or the level entered is invalid.");
+		
+		else return SendClientMessage(playerid, COLOR_RED, "They aren't connected.");
 	}
 	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
