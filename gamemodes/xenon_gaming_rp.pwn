@@ -15,7 +15,9 @@
 #define mysql_password ""
 #define mysql_database "xenon_gaming_rp"
 
-#define GMName "Xenon Gaming Roleplay"
+#define GMName 		      "Xenon Gaming Roleplay"
+#define ServerName        "Xenon Gaming Roleplay"
+#define ServerName_Short  "Xenon Gaming RP"
 
 #define COLOR_ERROR			0xFF0000FF
 #define COLOR_GREEN 		0x008000FF
@@ -152,7 +154,7 @@ public OnGameModeInit()
 	#endif
     LoadMOTD();
 	if(strlen(serverMOTD) < 1) {
-	format(serverMOTD, sizeof(serverMOTD), "Welcome to Xenon Gaming RP!");
+	format(serverMOTD, sizeof(serverMOTD), "Welcome to "ServerName_Short"!");
 	new query[250];
 	mysql_format(MySQLCon, query, sizeof(query), "INSERT INTO `settings` (`MOTD`) VALUES ('%s')", serverMOTD);
     mysql_tquery(MySQLCon, query, "", "");
@@ -258,7 +260,7 @@ public OnPlayerConnect(playerid)
 {
 	SetPlayerColor(playerid, COLOR_WHITE); // Just white(FOR NOW).
 	new query[500];
-	SendClientMessage(playerid, -1, "Welcome to Xenon Gaming. Please wait.");
+	SendClientMessage(playerid, -1, "Welcome to "ServerName". Please wait.");
     new name[MAX_PLAYER_NAME], first[MAX_PLAYER_NAME], last[MAX_PLAYER_NAME];
 	GetPlayerName(playerid,name,sizeof(name));
 	BanCheck(playerid);
