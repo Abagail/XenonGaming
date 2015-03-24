@@ -52,6 +52,9 @@
 #define ADMIN_MANAGER_RANK      6
 #define MAX_ADMIN_VEHICLE_SLOTS 25
 
+#define VIRUTAL_WORLD_NORMAL    0
+#define VIRTUAL_WORLD_KICKED    1
+
 #define ERROR_TYPE_NONE 0
 #define ERROR_TYPE_NOT_AUTH 1
 native WP_Hash(buffer[], len, const str[]);
@@ -138,6 +141,7 @@ main()
 public OnGameModeInit()
 {
 	SetGameModeText(GMName);
+	ShowPlayerMarkers(PLAYER_MARKERS_MODE_OFF);
 	MySQLCon = mysql_connect(mysql_host, mysql_user, mysql_database, mysql_password);
 	if(mysql_errno(MySQLCon) != 0) print("Could not connect to database!");
 	if(mysql_errno(MySQLCon) == 0) print("Successfully connected to MySQL database.");
@@ -270,8 +274,9 @@ public OnPlayerConnect(playerid)
 	    mysql_format(MySQLCon, query, sizeof(query),"SELECT * FROM `players` WHERE `user` = '%e' LIMIT 1", PlayerName(playerid));
 	    mysql_tquery(MySQLCon, query, "OnAccountCheck", "i", playerid);
 	} else {
- 		KickEx(playerid, "Your name is not suitable for a roleplaying enviorment. If you feel this is a mistake please contact an administrator");
- 		SetPlayerVirtualWorld(playerid, 9218321);
+ 		KickEx(playerid, "Your name is not suitable for a roleplaying enviorment. If you feel this is a mistake please contact an administrator.");
+ 		SetPlayerVirtualWorld(playerid, VIRTUAL_WORLD_KICKED);
+		TogglePlayerControllable(playerid, 0);
 	}
 	return 1;
 }
@@ -937,12 +942,13 @@ CMD:ahide(playerid, params[])
 	}
 	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
+
 CMD:admins(playerid, params[])
 {
 	new string[128 + MAX_PLAYER_NAME], count;
 	foreach(new i: Player)
 	{
-	    if(pInfo[i][pAdmin] && pAdminHide[i] == 0 || pInfo[i][pAdmin] && pAdminHide[i] && pInfo[playerid][pAdmin] >= 6)
+	    if(pInfo[i][pAdmin] && pAdminHide[i] == 0 || pInfo[i][pAdmin] && pAdminHide[i] && pInfo[playerid][pAdmin] >= 6 || pInfo[i][pAdmin] && pAdminHide[i] && pInfo[playerid][pAdmin] >= pInfo[i][pAdmin])
 	    {
 	        switch(aduty[i])
 			{
