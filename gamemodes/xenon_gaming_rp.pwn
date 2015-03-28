@@ -339,6 +339,32 @@ public OnPlayerSave(playerid)
 	return 1;
 }
 
+forward OnUnbanAccount_Process(playerid, playername[]);
+public OnUnbanAccount_Process(playerid, playername[])
+{
+	new numrows = cache_num_rows(), query[200 + 32], string[128];
+	
+	if(numrows)
+	{
+		new res[32];
+		cache_get_field_content(0, "IP", res, sizeof(res));
+	    format(query, sizeof(query), "DELETE FROM `bans` WHERE `IP` = '%s'", res);
+		mysql_tquery(MySQLCon, query, "OnUnbanIP_Process", "ds", playerid, playername);
+		
+		format(string, sizeof(string), "The account %s has been unbanned.", playername);
+		SendClientMessage(playerid, -1, string);
+		
+		return 1;
+	}
+	
+	else
+	{
+		format(string, sizeof(string), "Unable to unban %s.", playername);
+	}
+	
+	return 1;
+}
+
 forward OnAccountCheck(playerid);
 public OnAccountCheck(playerid)
 {
@@ -1069,7 +1095,22 @@ CMD:ban(playerid, params[])
 	}
 	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
+
+CMD:unban(playerid, params[])
+{
+	if(pInfo[playerid][pAdmin] >= 1)
+	{
+	    new playername[MAX_PLAYER_NAME];
+	    if(sscanf(params, "s[MAX_PLAYER_NAME]", playername)) return SendSyntaxMessage(playerid, "/unban [account_name]");
 	    
+		new query[200];
+		format(query, sizeof(query), "UPDATE `players` SET `IsBanned` = 0 WHERE `user` = '%e'", playername);
+		mysql_tquery(MySQLCon, query, "OnUnbanAccount_Process", "ds", playerid, playername);
+		
+		return 1;
+	}
+	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
+}
 
 CMD:poke(playerid, params[])
 {
