@@ -111,7 +111,9 @@ enum PlayerInfo
 	pInterior,
 	pSkinID,
 	pVW,
-	pAName[24] // This is their forum name. This will NEVER be shown as their in-game name(shows in /admins, /aduty, etc).
+	pAName[24], // This is their forum name. This will NEVER be shown as their in-game name(shows in /admins, /aduty, etc).
+	pIsBanned,
+	pBanDate
 }
 
 new pInfo[MAX_PLAYERS][PlayerInfo];
@@ -256,6 +258,8 @@ public OnPlayerSpawn(playerid)
 	SetPlayerInterior(playerid, pInfo[playerid][pInterior]);
 	return true;
 }
+
+public OnPlayerUpdate(playerid) return 1;
 public OnPlayerConnect(playerid)
 {
 	SetPlayerColor(playerid, COLOR_WHITE); // Just white(FOR NOW).
@@ -339,6 +343,10 @@ public OnAccountCheck(playerid)
     cache_get_data(rows, fields, MySQLCon);
     if(rows)
     {
+        new res[2];
+        cache_get_field_content(0, "IsBanned", res, 2);
+        
+        if(strval(res)) return KickEx(playerid, "You are banned - you cannot login.");
         cache_get_row(0, 2, pInfo[playerid][pPass], MySQLCon, 129);
         pInfo[playerid][pID] = cache_get_field_content_int(0, "ID");
    		format(string, sizeof(string), "Before playing you must login\n\nUsername: %s\n\nEnter your password below and click login",PlayerName(playerid));
@@ -568,6 +576,46 @@ SendErrorMessage(playerid, color, error=ERROR_TYPE_NONE)
 	}
 	return 1;
 }
+
+stock BanPlayer(playerid, giveplayerid, reason[])
+{
+	new bannedby[MAX_PLAYER_NAME];
+	if(IsPlayerConnected(giveplayerid))
+	{
+		if(playerid != INVALID_PLAYER_ID) // banned by an admin and not by autoban
+		{
+		    format(bannedby, sizeof(bannedby), "%s", GetName(playerid));
+		}
+		else format(bannedby, sizeof(bannedby), "SYSTEM");
+		
+		new bannedIP[32];
+		GetPlayerIp(playerid, bannedIP, sizeof(bannedIP));
+
+		new query[500];
+		format(query, sizeof(query), "INSERT INTO `xenon_gaming_rp`.`bans` (`IP`, `Reason`, `Name`, `Date`, `username`, `BanExp`) VALUES ('%s', 'Banned', 'SYSTEM', '2015-03-28', 'Bob_Henaway', '0')", bannedIP, reason, bannedby, getdate(), GetName(giveplayerid), 0);
+        mysql_real_escape_string(query, query, sizeof(query));
+		mysql_tquery(MySQLCon, query, "OnIPBanComplete", "dds", playerid, giveplayerid, reason);
+		
+		pInfo[giveplayerid][pIsBanned] = 1;
+		pInfo[giveplayerid][pBanDate] = getdate();
+		
+		return 1;
+	}
+	else return 0;
+}
+stock SendSyntaxMessage(playerid, msg[])
+{
+	if(IsPlayerConnected(playerid))
+	{
+	    new string[256];
+	    format(string, sizeof(string), "USAGE: %s", msg);
+	    
+	    SendClientMessage(playerid, -1, string);
+	}
+	
+	return 1;
+}
+
 stock ResetPlayerData(playerid)
 {
     pInfo[playerid][pID] = 0;
@@ -762,6 +810,8 @@ forward KickEx(playerid, msg[]);
 public KickEx(playerid, msg[])
 {
 	SendClientMessage(playerid, COLOR_RED, msg);
+	TogglePlayerControllable(playerid, 0);
+	SetPlayerVirtualWorld(playerid, VIRTUAL_WORLD_KICKED);
 	SetTimerEx("KickPublic", 1000, false, "i", playerid);
 	return true;
 }
@@ -994,6 +1044,29 @@ CMD:kick(playerid, params[])
 	}
 	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
 }
+
+CMD:ban(playerid, params[])
+{
+	if(pInfo[playerid][pAdmin] >= 1)
+	{
+	    new giveplayerid, reason[128], string[200];
+	    if(sscanf(params, "us[128]", giveplayerid, reason)) return SendSyntaxMessage(playerid, "/ban [playerid] [reason]");
+	    
+	    if(IsPlayerConnected(giveplayerid) && pInfo[playerid][pAdmin] > pInfo[giveplayerid][pAdmin])
+	    {
+	        format(string, sizeof(string), "Warn: %s has been banned from the server by Administrator %s, reason: %s", GetName(giveplayerid), GetName(playerid), reason);
+	        SendClientMessageToAll(COLOR_RED, string);
+	        print(string);
+	        format(string, sizeof(string), "You have been kicked from the server by Admin %s, for: %s.", GetName(playerid), reason);
+	        SendClientMessage(giveplayerid, COLOR_RED, string);
+	        BanPlayer(playerid, giveplayerid, reason);
+	        return 1;
+		}
+		else return SendClientMessage(playerid, COLOR_RED, "They aren't connected, or have a higher admin rank than you.");
+	}
+	else return SendErrorMessage(playerid, COLOR_RED, ERROR_TYPE_NOT_AUTH);
+}
+	    
 
 CMD:poke(playerid, params[])
 {
