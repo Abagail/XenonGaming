@@ -326,6 +326,9 @@ public OnPlayerSave(playerid)
         PlayerName(playerid));
         mysql_tquery(MySQLCon, query, "", "");
         print(query);
+        
+		mysql_format(MySQLCon, query, sizeof(query), "UPDATE `players` SET `IsBanned`=%d WHERE `ID`=%d AND user='%e'", pInfo[playerid][pIsBanned], PlayerName(playerid));
+		mysql_tquery(MySQLCon, query, "", "");
         IsLoggedIn[playerid] = 0;
 		if(pInfo[playerid][pAdmin] >= 1)
 		{
