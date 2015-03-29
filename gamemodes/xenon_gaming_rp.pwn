@@ -882,8 +882,10 @@ public OnPlayerLogin(playerid)
     pInfo[playerid][pSkinID] = cache_get_field_content_int(0, "SkinID");
 
     TogglePlayerControllable(playerid, false);
+	TogglePlayerSpectating(playerid, true);
     SetSpawnInfo(playerid,pInfo[playerid][pSkinID], 0, pInfo[playerid][pPos_x], pInfo[playerid][pPos_y], pInfo[playerid][pPos_z], pInfo[playerid][pPos_FacingAngle], 0, 0, 0, 0, 0, 0);
-    SpawnPlayer(playerid);
+    TogglePlayerSpectating(playerid, false);
+	SpawnPlayer(playerid);
     GivePlayerMoney(playerid, pInfo[playerid][pMoney]);
     SetPlayerScore(playerid, pInfo[playerid][pScore]);
     SetPlayerSkin(playerid, pInfo[playerid][pSkinID]);
@@ -929,8 +931,7 @@ stock BanCheck(playerid)
  	return 1;
 }
 
-
-stock IsValidSkin(skin)
+stock IsValidSkin(skin, playerid=INVALID_PLAYER_ID)
 {
 	switch(skin)
 	{
@@ -938,10 +939,22 @@ stock IsValidSkin(skin)
 	    case 1..73: return true;
 	    case 74: return false; // This skin is invalid/missing. Using this sets skin to CJ skin(skin ID 0).
 		case 75..299: return 1; // A valid skin has been passed. Note ID 74 returns 0, - so this won't get called.
+		case 300..312:
+		{
+		    if(playerid != INVALID_PLAYER_ID)
+		    {
+		        new string[40];
+		        GetPlayerVersion(playerid, string, sizeof(string));
+		        
+		        if(strfind(string, "0.3.7", true) == 0) return 1;
+		        else return 0;
+			}
+		}
 		default: return 0; // Anything else is invalid, so nothing gets returned.
 	}
 	return -1;
 }
+
 stock SkinName(skin)
 {
 	#pragma unused skin
@@ -986,7 +999,7 @@ CMD:checkip(playerid, params[])
 	if(pInfo[playerid][pAdmin] >= 1)
 	{
 		new player_name[MAX_PLAYER_NAME];
-		if(sscanf(params, "s[24]", player_name)) return SendClientMessage(playerid, COLOR_WHITE, "USAGE: /checkip [playerid/playername]");
+		if(sscanf(params, "s[24]", player_name)) return SendSyntaxMessage(playerid, "/checkip [playerid/playername]");
         new giveplayerid = ReturnUser(player_name);
 		if(IsPlayerConnected(giveplayerid)) {
 		    new pIP[16], string[256];
@@ -1037,7 +1050,7 @@ CMD:admins(playerid, params[])
 				 default: format(string, sizeof(string), "On-Duty");
 			}
 
-			format(string, sizeof(string), "Level %s Admin %s(%s)", pInfo[i][pAdmin], GetName(i), string);
+			format(string, sizeof(string), "Level %d Admin %s(%s)", pInfo[i][pAdmin], GetName(i), string);
 			
 			SendClientMessage(playerid, COLOR_YELLOW, string);
 			count++;
@@ -1058,7 +1071,7 @@ CMD:kick(playerid, params[])
 	if(pInfo[playerid][pAdmin] >= 1)
 	{
 	    new giveplayerid, reason[128], string[200];
-	    if(sscanf(params, "us[128]", giveplayerid, reason)) return SendClientMessage(playerid, COLOR_WHITE, "USAGE: /kick [playerid] [reason]");
+	    if(sscanf(params, "us[128]", giveplayerid, reason)) return SendSyntaxMessage(playerid, "/kick [playerid] [reason]");
 	    if(IsPlayerConnected(giveplayerid) && pInfo[playerid][pAdmin] > pInfo[giveplayerid][pAdmin])
 	    {
 			format(string, sizeof(string), "Warn: %s has been kicked from the server by Administrator %s, reason: %s", GetName(giveplayerid), GetName(playerid), reason);
@@ -1117,7 +1130,7 @@ CMD:poke(playerid, params[])
 	if(pInfo[playerid][pAdmin] >= 1)
 	{
 	    new giveplayerid, message[128], string[200];
-	    if(sscanf(params, "us[128]", giveplayerid, message)) return SendClientMessage(playerid, COLOR_WHITE, "USAGE: /poke [playerid] [message]");
+	    if(sscanf(params, "us[128]", giveplayerid, message)) return SendSyntaxMessage(playerid, "/poke [playerid] [message]");
 		if(IsPlayerConnected(giveplayerid))
 		{
 		    ShowPlayerDialog(giveplayerid, 0, DIALOG_STYLE_MSGBOX, "An admin pokes you.", message, "Okay", "Okay");
@@ -1135,7 +1148,7 @@ CMD:makeadmin(playerid, params[])
 	if(pInfo[playerid][pAdmin] >= MAKE_ADMIN_RANK || IsPlayerAdmin(playerid) && RCONMakeAdmin == 1)
 	{
 	    new giveplayerid, level;
-	    if(sscanf(params, "ud", giveplayerid, level)) return SendClientMessage(playerid, COLOR_WHITE, "USAGE: /makeadmin [playerid] [level]");
+	    if(sscanf(params, "ud", giveplayerid, level)) return SendSyntaxMessage(playerid, "/makeadmin [playerid] [level]");
 	    if(IsPlayerConnected(giveplayerid))
 	    {
 	        if(level < MAX_ADMIN_LEVEL && level != 0)
@@ -1171,7 +1184,7 @@ CMD:a(playerid, params[])
 	if(pInfo[playerid][pAdmin] >= 1 && aduty[playerid] || pInfo[playerid][pAdmin] >= 7) // Level 7 Admins can use this whilst off-duty.
 	{
 	    new message[64];
-	    if(sscanf(params, "s[64]", message)) return SendClientMessage(playerid, COLOR_WHITE, "USAGE: /a [message]");
+	    if(sscanf(params, "s[64]", message)) return SendSyntaxMessage(playerid, "/a [message]");
 	    new string[200];
 		format(string, sizeof(string), "Level %d Admin %s: %s", pInfo[playerid][pAdmin], GetName(playerid), message);
 		SendAdminMessage(COLOR_YELLOW, string);
@@ -1182,10 +1195,10 @@ CMD:a(playerid, params[])
 
 CMD:setforumname(playerid, params[])
 {
-	if(pInfo[playerid][pAdmin] >= ADMIN_MANAGER_RANK) // This rank can access commands to "edit" admin accounts, how-ever they can't actually use /makeadmin.
+	if(pInfo[playerid][pAdmin] >= ADMIN_MANAGER_RANK || pInfo[playerid][pAdmin] >= 7) // This rank can access commands to "edit" admin accounts, how-ever they can't actually use /makeadmin.
 	{
 	    new giveplayerid, name[128], string[256];
-	    if(sscanf(params, "us[128]", giveplayerid, name)) return SendClientMessage(playerid, COLOR_WHITE, "USAGE: /setforumname [player] [name]");
+	    if(sscanf(params, "us[128]", giveplayerid, name)) return SendSyntaxMessage(playerid, "/setforumname [player] [name]");
 	    if(IsPlayerConnected(giveplayerid)) {
 			if(pInfo[giveplayerid][pAdmin] == 0) return SendClientMessage(playerid, COLOR_WHITE, "Only admins can have forum names associated with their account.");
 			format(pInfo[playerid][pAdmin], 128, "%s", name);
@@ -1238,7 +1251,7 @@ CMD:getcar(playerid, params[])
 	if(pInfo[playerid][pAdmin] >= 1 && aduty[playerid] || pInfo[playerid][pAdmin] >= 7)
 	{
 		new vehicleid, string[129];
-		if(sscanf(params, "d", vehicleid)) return SendClientMessage(playerid, COLOR_GREY, "USAGE: /getcar [vehicleid]");
+		if(sscanf(params, "d", vehicleid)) return SendSyntaxMessage(playerid, "/getcar [vehicleid]");
 		if(vehicleid != INVALID_VEHICLE_ID)
 		{
 			new Float: X, Float: Y, Float: Z;
@@ -1258,7 +1271,7 @@ CMD:gotov(playerid, params[])
      if(pInfo[playerid][pAdmin] >= 1 && aduty[playerid] || pInfo[playerid][pAdmin] >= 7)
 	 {
 		new vehicleid, string[129];
-		if(sscanf(params, "d", vehicleid)) return SendClientMessage(playerid, COLOR_GREY, "USAGE: /gotov [vehicleid]");
+		if(sscanf(params, "d", vehicleid)) return SendSyntaxMessage(playerid, "/gotov [vehicleid]");
 		if(vehicleid != INVALID_VEHICLE_ID)
 		{
 			new Float: X, Float: Y, Float: Z;
@@ -1278,7 +1291,7 @@ CMD:respawnv(playerid, params[])
      if(pInfo[playerid][pAdmin] >= 1 && aduty[playerid] || pInfo[playerid][pAdmin] >= 7)
 	 {
 		new vehicleid, string[129];
-		if(sscanf(params, "d", vehicleid)) return SendClientMessage(playerid, COLOR_GREY, "USAGE: /gotov [vehicleid]");
+		if(sscanf(params, "d", vehicleid)) return SendSyntaxMessage(playerid, "/gotov [vehicleid]");
 		if(vehicleid != INVALID_VEHICLE_ID)
 		{
 			SetVehicleToRespawn(vehicleid);
@@ -1296,16 +1309,17 @@ CMD:setskin(playerid, params[])
 	if(pInfo[playerid][pAdmin] >= 1 && aduty[playerid] || pInfo[playerid][pAdmin] >= 7)
 	{
 	    new giveplayerid, skin, string[128];
-	    if(sscanf(params, "ud", giveplayerid, skin)) return SendClientMessage(playerid, COLOR_GREY, "USAGE: /setskin [player] [skin]");
+	    if(sscanf(params, "ud", giveplayerid, skin)) return SendSyntaxMessage(playerid, "/setskin [player] [skin]");
 		if(IsPlayerConnected(giveplayerid))
 		{
-		    if(IsValidSkin(skin))
+		    if(IsValidSkin(skin, playerid))
 		    {
 				SetPlayerSkinEx(giveplayerid, skin);
 				SendClientMessage(playerid, -1, "Your skin has been changed by an administrator.");
 				format(string, sizeof(string), "You have set player %s's(ID: %d) skin to %d(%s)", GetName(giveplayerid), giveplayerid, skin, SkinName(skin));
 				return true;
 			}
+			else return SendClientMessage(playerid, COLOR_RED, "That skin isn't valid!");
 		}
 		return true;
 	}
@@ -1362,7 +1376,7 @@ CMD:v(playerid, params[])
 	if(pInfo[playerid][pAdmin] >= 3 && aduty[playerid] == 1 || pInfo[playerid][pAdmin] >= 7)
 	{
 	    new vehicleid[25], color1 = 0, color2 = 1;
-	    if(sscanf(params, "s[24]DD", vehicleid, color1, color2)) return SendClientMessage(playerid, -1, "USAGE: /v [name/id] [color1] [color2]");
+	    if(sscanf(params, "s[24]DD", vehicleid, color1, color2)) return SendSyntaxMessage(playerid, "/v [name/id] [color1] [color2]");
 	    if(IsNumeric(vehicleid))
 	    {
 			new vehiclemodel = strval(vehicleid);
