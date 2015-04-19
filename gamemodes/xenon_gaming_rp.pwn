@@ -113,7 +113,8 @@ enum PlayerInfo
 	pVW,
 	pAName[24], // This is their forum name. This will NEVER be shown as their in-game name(shows in /admins, /aduty, etc).
 	pIsBanned,
-	pBanDate
+	pBanDate,
+	bool: pFrozen
 }
 
 new pInfo[MAX_PLAYERS][PlayerInfo];
@@ -282,7 +283,7 @@ public OnPlayerConnect(playerid)
 	} else {
  		KickEx(playerid, "Your name is not suitable for a roleplaying enviorment. If you feel this is a mistake please contact an administrator.");
  		SetPlayerVirtualWorld(playerid, VIRTUAL_WORLD_KICKED);
-		TogglePlayerControllable(playerid, 0);
+		TogglePlayerControllableEx(playerid, 0);
 	}
 	return 1;
 }
@@ -839,7 +840,7 @@ forward KickEx(playerid, msg[]);
 public KickEx(playerid, msg[])
 {
 	SendClientMessage(playerid, COLOR_RED, msg);
-	TogglePlayerControllable(playerid, 0);
+	TogglePlayerControllableEx(playerid, 0);
 	SetPlayerVirtualWorld(playerid, VIRTUAL_WORLD_KICKED);
 	SetTimerEx("KickPublic", 1000, false, "i", playerid);
 	return true;
@@ -881,7 +882,7 @@ public OnPlayerLogin(playerid)
     pInfo[playerid][pVW] = cache_get_field_content_int(0, "VW");
     pInfo[playerid][pSkinID] = cache_get_field_content_int(0, "SkinID");
 
-    TogglePlayerControllable(playerid, false);
+    TogglePlayerControllableEx(playerid, false);
 	TogglePlayerSpectating(playerid, true);
     SetSpawnInfo(playerid,pInfo[playerid][pSkinID], 0, pInfo[playerid][pPos_x], pInfo[playerid][pPos_y], pInfo[playerid][pPos_z], pInfo[playerid][pPos_FacingAngle], 0, 0, 0, 0, 0, 0);
     TogglePlayerSpectating(playerid, false);
@@ -896,7 +897,7 @@ public OnPlayerLogin(playerid)
     if(pInfo[playerid][pAdmin] != 0) SendClientMessage(playerid, COLOR_RED, "You have logged in as an administrator. Use [/adminhelp] to see your commands.");
 
 	SendClientMessage(playerid, COLOR_WHITE, "{8EC7DC}[INFO]: {FFFFFF}You have been logged in.");
-	TogglePlayerControllable(playerid, true);
+	TogglePlayerControllableEx(playerid, true);
 	new bigstring[261];
 	format(bigstring, sizeof(bigstring), "MOTD: %s", serverMOTD);
 	SendClientMessage(playerid, COLOR_WHITE, bigstring);
@@ -929,6 +930,30 @@ stock BanCheck(playerid)
  	mysql_tquery(MySQLCon, query, "OnBanCheck_Response", "d", playerid);
 
  	return 1;
+}
+
+stock TogglePlayerControllableEx(playerid, controllable) {
+	if(playerid == INVALID_PLAYER_ID) return INVALID_PLAYER_ID;
+	if(controllable == 0) {
+	    TogglePlayerControllable(playerid, 0);
+		pInfo[playerid][pFrozen] = true;
+		return 1;
+	}
+	
+	else {
+	    TogglePlayerControllable(playerid, 1);
+	    pInfo[playerid][pFrozen] = false;
+		return 1;
+	}
+	
+}
+
+stock IsPlayerFrozen(playerid) {
+	if(pInfo[playerid][pFrozen] == true) {
+	    return 1;
+	}
+	
+	return 0;
 }
 
 stock IsValidSkin(skin, playerid=INVALID_PLAYER_ID)
@@ -1080,7 +1105,7 @@ CMD:kick(playerid, params[])
 			format(string, sizeof(string), "You have been kicked from the server by Admin %s, for: %s.", GetName(playerid), reason);
 			SendClientMessage(giveplayerid, COLOR_RED, string);
 			
-			TogglePlayerControllable(giveplayerid, 0);
+			TogglePlayerControllableEx(giveplayerid, 0);
 			SetCameraBehindPlayer(giveplayerid);
             SetTimerEx("KickPublic", 1000, false, "i", playerid);
             return 1;
@@ -1105,7 +1130,7 @@ CMD:ban(playerid, params[])
 	        format(string, sizeof(string), "You have been banned from the server by Admin %s, for: %s.", GetName(playerid), reason);
 	        SendClientMessage(giveplayerid, COLOR_RED, string);
 	        
-	        TogglePlayerControllable(playerid, 0);
+	        TogglePlayerControllableEx(playerid, 0);
 	        SetCameraBehindPlayer(playerid);
 	        BanPlayer(playerid, giveplayerid, reason);
 	        return 1;
@@ -1311,6 +1336,32 @@ CMD:respawnv(playerid, params[])
 	else return SendClientMessage(playerid, COLOR_WHITE, "You aren't an admin, or aren't on-duty.");
 }
 
+CMD:freeze(playerid, params[])
+{
+	if(pInfo[playerid][pAdmin] >= 1 && aduty[playerid] || pInfo[playerid][pAdmin] >= 7)
+	{
+	    new giveplayerid, string[129];
+	    if(sscanf(params, "u", giveplayerid)) return SendSyntaxMessage(playerid, "/freeze [playerid]");
+	    
+	    if(IsPlayerConnected(giveplayerid)) {
+	        if(IsPlayerFrozen(giveplayerid)) {
+	            TogglePlayerControllableEx(giveplayerid, 1);
+	            format(string, sizeof(string), "You have unfrozen %s(%d).", GetName(giveplayerid), giveplayerid);
+	            SendClientMessage(playerid, COLOR_RED, string);
+	            return 1;
+			}
+			else {
+			    TogglePlayerControllableEx(giveplayerid, 0);
+	            format(string, sizeof(string), "You have frozen %s(%d).", GetName(giveplayerid), giveplayerid);
+	            SendClientMessage(playerid, COLOR_RED, string);
+	            return 1;
+			}
+		}
+		else return SendClientMessage(playerid, COLOR_WHITE, "Invalid player ID!");
+	}
+	else return SendClientMessage(playerid, COLOR_WHITE, "You aren't an admin, or aren't on-duty.");
+}
+			
 CMD:setskin(playerid, params[])
 {
 	if(pInfo[playerid][pAdmin] >= 1 && aduty[playerid] || pInfo[playerid][pAdmin] >= 7)
