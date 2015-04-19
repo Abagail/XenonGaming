@@ -1021,7 +1021,7 @@ stock DoesAccountExist(szName[])
 CMD:adminhelp(playerid, params[])
 {
 	if(pInfo[playerid][pAdmin] == 0) return SendClientMessage(playerid, COLOR_WHITE, "There are no commands for your rank.");
-	if(pInfo[playerid][pAdmin] >= 1) SendClientMessage(playerid, COLOR_WHITE, "Level 1 Admin: /kick /poke /a /aduty /gotov /getcar /respawnv /ahide");
+	if(pInfo[playerid][pAdmin] >= 1) SendClientMessage(playerid, COLOR_WHITE, "Level 1 Admin: /kick /poke /a /aduty /gotov /getcar /respawnv /setskin /setworld /ahide");
 	if(pInfo[playerid][pAdmin] >= 2) SendClientMessage(playerid, COLOR_WHITE, "There are no commands for this rank.");
 	if(pInfo[playerid][pAdmin] >= 3) SendClientMessage(playerid, COLOR_WHITE, "There are no commands for this rank.");
 	if(pInfo[playerid][pAdmin] >= 4) SendClientMessage(playerid, COLOR_WHITE, "There are no commands for this rank.");
