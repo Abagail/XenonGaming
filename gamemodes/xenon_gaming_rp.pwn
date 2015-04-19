@@ -946,7 +946,7 @@ stock IsValidSkin(skin, playerid=INVALID_PLAYER_ID)
 		        new string[40];
 		        GetPlayerVersion(playerid, string, sizeof(string));
 		        
-		        if(strfind(string, "0.3.7", true) == 0) return 1;
+		        if(strfind(string, "0.3.7-RC3", true) == 0 || strfind(string, "0.3.7-RC4", true) == 0) return 1;
 		        else return 0;
 			}
 		}
@@ -1079,6 +1079,9 @@ CMD:kick(playerid, params[])
 			print(string);
 			format(string, sizeof(string), "You have been kicked from the server by Admin %s, for: %s.", GetName(playerid), reason);
 			SendClientMessage(giveplayerid, COLOR_RED, string);
+			
+			TogglePlayerControllable(giveplayerid, 0);
+			SetCameraBehindPlayer(giveplayerid);
             SetTimerEx("KickPublic", 1000, false, "i", playerid);
             return 1;
 		}
@@ -1099,8 +1102,11 @@ CMD:ban(playerid, params[])
 	        format(string, sizeof(string), "Warn: %s has been banned from the server by Administrator %s, reason: %s", GetName(giveplayerid), GetName(playerid), reason);
 	        SendClientMessageToAll(COLOR_RED, string);
 	        print(string);
-	        format(string, sizeof(string), "You have been kicked from the server by Admin %s, for: %s.", GetName(playerid), reason);
+	        format(string, sizeof(string), "You have been banned from the server by Admin %s, for: %s.", GetName(playerid), reason);
 	        SendClientMessage(giveplayerid, COLOR_RED, string);
+	        
+	        TogglePlayerControllable(playerid, 0);
+	        SetCameraBehindPlayer(playerid);
 	        BanPlayer(playerid, giveplayerid, reason);
 	        return 1;
 		}
@@ -1133,6 +1139,7 @@ CMD:poke(playerid, params[])
 	    if(sscanf(params, "us[128]", giveplayerid, message)) return SendSyntaxMessage(playerid, "/poke [playerid] [message]");
 		if(IsPlayerConnected(giveplayerid))
 		{
+		    SendClientMessage(giveplayerid, COLOR_YELLOW, "You have been poked!");
 		    ShowPlayerDialog(giveplayerid, 0, DIALOG_STYLE_MSGBOX, "An admin pokes you.", message, "Okay", "Okay");
 			format(string, sizeof(string), "You poked %s with the message %s.", GetName(giveplayerid), message);
 			SendClientMessage(playerid, COLOR_RED, string);
