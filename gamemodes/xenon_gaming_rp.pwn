@@ -114,7 +114,8 @@ enum PlayerInfo
 	pAName[24], // This is their forum name. This will NEVER be shown as their in-game name(shows in /admins, /aduty, etc).
 	pIsBanned,
 	pBanDate,
-	bool: pFrozen
+	bool: pFrozen,
+	pWorld
 }
 
 new pInfo[MAX_PLAYERS][PlayerInfo];
@@ -956,6 +957,19 @@ stock IsPlayerFrozen(playerid) {
 	return 0;
 }
 
+stock SetPlayerWorldEx(playerid, world) {
+	pInfo[playerid][pWorld] = world;
+	SetPlayerVirtualWorld(playerid, world);
+	return 1;
+}
+
+stock IsValidWorld(world, player=INVALID_PLAYER_ID)
+{
+	if(player == INVALID_PLAYER_ID && world == -1) return INVALID_PLAYER_ID;
+	if(world < 0 || world > 10000000000) return 0;
+	return 1;
+}
+
 stock IsValidSkin(skin, playerid=INVALID_PLAYER_ID)
 {
 	switch(skin)
@@ -1370,18 +1384,42 @@ CMD:setskin(playerid, params[])
 	    if(sscanf(params, "ud", giveplayerid, skin)) return SendSyntaxMessage(playerid, "/setskin [player] [skin]");
 		if(IsPlayerConnected(giveplayerid))
 		{
-		    if(IsValidSkin(skin, playerid))
+		    if(IsValidSkin(skin, giveplayerid))
 		    {
 				SetPlayerSkinEx(giveplayerid, skin);
 				SendClientMessage(playerid, -1, "Your skin has been changed by an administrator.");
 				format(string, sizeof(string), "You have set player %s's(ID: %d) skin to %d(%s)", GetName(giveplayerid), giveplayerid, skin, SkinName(skin));
+				SendClientMessage(playerid, -1, string);
 				return true;
 			}
 			else return SendClientMessage(playerid, COLOR_RED, "That skin isn't valid!");
 		}
-		return true;
+		else return SendClientMessage(playerid, COLOR_RED, "Invalid player ID.");
 	}
-	return true;
+	else return SendClientMessage(playerid, COLOR_WHITE, "You aren't an admin, or aren't on-duty.");
+}
+
+CMD:setworld(playerid, params[])
+{
+	if(pInfo[playerid][pAdmin] >= 1 && aduty[playerid] || pInfo[playerid][pAdmin] >= 7)
+	{
+		new giveplayerid, world, string[129];
+		if(sscanf(params, "ud", giveplayerid, world)) return SendSyntaxMessage(playerid, "/setworld [player]");
+		if(IsPlayerConnected(giveplayerid))
+		{
+		    if(IsValidWorld(world, giveplayerid))
+		    {
+		        SetPlayerWorldEx(giveplayerid, world);
+		        SendClientMessage(playerid, -1, "Your world has been set by an administrator.");
+		        format(string, sizeof(string), "You have set player %s's(ID: %d) world to %d.", GetName(giveplayerid), giveplayerid, world);
+		        SendClientMessage(playerid, -1, string);
+		        return 1;
+			}
+			else return SendClientMessage(playerid, COLOR_RED, "That world isn't valid!");
+		}
+		else return SendClientMessage(playerid, COLOR_RED, "Invalid player ID.");
+	}
+	else return SendClientMessage(playerid, COLOR_WHITE, "You aren't an admin, or aren't on-duty.");
 }
 CMD:changepassword(playerid, params[])
 {
